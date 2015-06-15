@@ -21,40 +21,33 @@ TAP0IP="10.1.1.1/24"
 #### Start Opening Things Up ####
 
 # Open VMware Fusion with IOU VM
-echo ""
-echo "=====[ Opening VMWare Fusion Lab box  ]====="
-echo ""
+printf "\n=====[ Opening VMWare Fusion Lab box  ]=====\n\n"
 /Applications/VMware\ Fusion.app/Contents/Library/vmrun -T Fusion start "$LABVM" nogui &
-# To suspend: /Applications/VMware\ Fusion.app/Contents/Library/vmrun -T Fusion suspend "$$LABVM"
+# To suspend: /Applications/VMware\ Fusion.app/Contents/Library/vmrun -T Fusion suspend "$LABVM"
 
 
 # Open GNS3 with topology file
-echo ""
-echo "=====[ Opening GNS3  ]====="
-echo ""
+printf "\n=====[ Opening GNS3  ]=====\n\n"
 /Applications/GNS3.app/Contents/MacOS/GNS3 "$TOPFILE" &
 
 
 
 # Number of seconds to wait before assigning IP configuration to tap0
 # This lets GNS3 start and bring up the tun interfaces
-echo ""
-echo "=====[ Waiting 20 seconds for GNS3 and VMWare Fusion to start and bring up lab  ]====="
-for i in {20..1};do echo -n "$i, " && sleep 1 ;done
-echo ""
+printf "\n=====[ Waiting 20 seconds for GNS3 and VMWare Fusion to start and bring up lab  ]=====\n"
+for i in {20..1};do printf "$i, " && sleep 1 ;done
 
-echo "=====[ Setting up Tunnel interfaces for lab  ]====="
-echo ""
+
+printf "\n=====[ Setting up Tunnel interfaces for lab  ]=====\n\n"
 # Set the IP configuration for the the tap interfaces and turn them up
 sudo ifconfig tap0 $TAP0IP up
 sudo ifconfig tap1 up
-echo "sudo ifconfig tap0 $TAP0IP up"
-echo "sudo ifconfig tap1 up"
-echo "Tunnel Interfaces configured." 
+printf "sudo ifconfig tap0 $TAP0IP up\n"
+printf "sudo ifconfig tap1 up\n"
+printf "Tunnel Interfaces configured.\n" 
 sleep 2
 
-echo "=====[ Setting up Virtual Forwarding ]====="
-echo ""
+printf "=====[ Setting up Virtual Forwarding ]=====\n\n"
 # Turn on routing for virtual interface on MAC
 # This step is needed if the result of `sysctl -a | grep ip.forwarding` = 0
 # sudo sysctl -w net.inet.ip.forwarding=1
@@ -67,20 +60,15 @@ IPFORVALUE="$(sysctl -a | grep ip.forwarding | tail -c 2)"
 if [ "$IPFORVALUE" -eq "0" ]
 	then
 		sudo sysctl -w net.inet.ip.forwarding=1
-		echo ""
-		echo "sudo sysctl -w net.inet.ip.forwarding=1" 
-		echo "IP Forwarding is now configured."
-		echo ""
+		printf "\nsudo sysctl -w net.inet.ip.forwarding=1\n" 
+		printf "IP Forwarding is now configured.\n\n"
 	else
-		echo ""
-		echo "$IPFORWARDING"
-		echo "IP Forwarding was already set."
-		echo ""
+		printf "\n$IPFORWARDING\n"
+		printf "IP Forwarding was already set.\n\n"
 fi
 sleep 2
 
-echo "=====[ Setting up routing to lab ]====="
-echo ""
+printf "=====[ Setting up routing to lab ]=====\n\n"
 # Turn on routing to internal networks in lab
 # This step is needed if the result of `netstat -rn | grep 172.16.195`
 # doesn't give a route to the internal networks (10.1.2.0/24 and 10.1.3.0/24)
@@ -90,41 +78,31 @@ LABROUTING="$(netstat -rn | grep "10.1.2/23")"
 if [ -z "$LABROUTING" ]
 	then
 		sudo route -nv add -net 10.1.2.0/23 10.1.1.2
-		echo ""
-		echo "sudo route -nv add -net 10.1.2.0/23 10.1.1.2"
-		echo "Route to lab network has been added."
-		echo ""
+		printf "\nsudo route -nv add -net 10.1.2.0/23 10.1.1.2\n"
+		printf "Route to lab network has been added.\n\n"
 	else
-		echo ""
-		echo $LABROUTING
-		echo "Route to lab network was already in place."
-		echo ""
+		printf "\n$LABROUTING\n"
+		printf "Route to lab network was already in place.\n\n"
 fi
 sleep 2
 
 
-echo "=====[ Choosing default interface ]====="
-echo ""
+printf "=====[ Choosing default interface ]=====\n\n"
 # Verify which NIC is being used for internet access WIRED or WIRELESS (EN0 or EN1)
 # netstat -rn | grep default
 # DEFAULTROUTE="$(netstat -rn | grep default)"
 
-echo ""
-echo "netstat -rn | grep default | tail -c 4"
-# echo "$DEFAULTROUTE"
-# echo ""
-# echo "Please enter the inteface name that is currently the default route."
-# echo "Note: Please type the name exactly as it appears in the above output."
-# echo -n "> "
+printf "\nnetstat -rn | grep default | tail -c 4\n"
+# printf "$DEFAULTROUTE\n\n"
+# printf "Please enter the inteface name that is currently the default route.\n"
+# printf "Note: Please type the name exactly as it appears in the above output.\n"
+# printf "> "
 # read DEFAULTINTERFACE
 DEFAULTINTERFACE="$(netstat -rn | grep default | tail -c 4)"
-echo ""
-echo "Default interface set to $DEFAULTINTERFACE"
-echo ""
+printf "\nDefault interface set to $DEFAULTINTERFACE\n\n"
 sleep 2
 
-echo "=====[ Setting up NATing to the lab network  ]====="
-echo ""
+printf "=====[ Setting up NATing to the lab network  ]=====\n\n"
 # Turn on NATing for the tun0 interface from our main interface eth0
 # This step is needed if there is no output for:
 # `ps aux | grep natd | grep en0`  - WIRED
@@ -137,20 +115,15 @@ NATTING="$(ps aux | grep natd | grep $DEFAULTINTERFACE)"
 if [ -z "$NATTING" ]
 	then
 		sudo natd -interface $DEFAULTINTERFACE -use_sockets -same_ports -unregistered_only -dynamic -clamp_mss
-		echo ""
-		echo "sudo natd -interface $DEFAULTINTERFACE -use_sockets -same_ports -unregistered_only -dynamic -clamp_mss"
-		echo "Natting is now configured."
-		echo ""
+		printf "\nsudo natd -interface $DEFAULTINTERFACE -use_sockets -same_ports -unregistered_only -dynamic -clamp_mss\n"
+		printf "Natting is now configured.\n\n"
 	else
-		echo ""
-		echo "$NATTING"
-		echo "Natting was already configured."
-		echo ""
+		printf "\n$NATTING\n"
+		printf "Natting was already configured.\n\n"
 fi	
 
 
-echo "=====[ Turning on Firewall  ]====="
-echo ""
+printf "=====[ Turning on Firewall  ]=====\n\n"
 # Turn on Firewall
 # This step is needed if result of `sysctl -a | grep ip.fw.en` = 0
 # sudo sysctl -w net.inet.ip.fw.enable=1
@@ -158,22 +131,17 @@ FIREWALL="$(sysctl -a | grep ip.fw.en)"
 FIREWALLVALUE="$(sysctl -a | grep ip.fw.en | tail -c 2)"
 
 if [ "$FIREWALLVALUE" -eq "0" ]
-        then
-                sudo sysctl -w net.inet.ip.fw.enable=1
-                echo ""
-                echo "sudo sysctl -w net.inet.ip.fw.enable=1" 
-                echo "IP Firewall is now configured."
-        	echo ""
+    then
+        sudo sysctl -w net.inet.ip.fw.enable=1
+        printf "\nsudo sysctl -w net.inet.ip.fw.enable=1\n" 
+        printf "IP Firewall is now configured.\n\n"
 	else
-                echo ""
-                echo "$FIREWALL"
-                echo "IP Firewall was already set."
-                echo ""
+        printf "\n$FIREWALL\n"
+        printf "IP Firewall was already set.\n\n"
 fi
 
 
-echo "=====[ Adding NAT rules to firewall  ]====="
-echo ""
+printf "=====[ Adding NAT rules to firewall  ]=====\n\n"
 # Add rules to firewall:
 # Verify rules: `sudo ipfw show`
 # WIRED:
@@ -184,22 +152,17 @@ echo ""
 FWALLRULES="$(sudo ipfw show | grep $DEFAULTINTERFACE)"
 
 if [ -z "$FWALLRULES" ]
-        then
-                sudo ipfw add divert natd ip from any to any via $DEFAULTINTERFACE
-		echo ""
-                echo "sudo ipfw add divert natd ip from any to any via $DEFAULTINTERFACE"
-		echo "Firewall rules are now configured."
-                echo ""
-        else
-                echo ""
-		echo "$FWALLRULES"
-                echo "Firewall rules were already configured."
-                echo ""
+    then
+        sudo ipfw add divert natd ip from any to any via $DEFAULTINTERFACE
+		printf "\nsudo ipfw add divert natd ip from any to any via $DEFAULTINTERFACE\n"
+		printf "Firewall rules are now configured.\n\n"
+    else
+        printf "\n$FWALLRULES\n"
+        printf "Firewall rules were already configured.\n\n"
 fi
 
 
-echo "=====[ Creating Bridge interface from Lab to VMWare  ]====="
-echo ""
+printf "=====[ Creating Bridge interface from Lab to VMWare  ]=====\n\n"
 # Create brige to VM if needed
 # sudo ifconfig bridge1 create
 # sudo ifconfig vmnet3 down
@@ -212,24 +175,20 @@ BRIDGE1="$(ifconfig bridge1 | grep "does not exist")"
 
 if [ -z "$BRIDGE1" ]
 	then
-		echo ""
-		echo "Bridge1 already exists adding interfaces vmnet3 and tap1"
-                sudo ifconfig vmnet3 down
-                sudo ifconfig vmnet3 inet delete
-                sudo ifconfig bridge1 addm vmnet3
-                sudo ifconfig bridge1 addm tap1
-                sudo ifconfig bridge1 up
-                echo ""
+        sudo ifconfig vmnet3 down
+        sudo ifconfig vmnet3 inet delete
+        sudo ifconfig bridge1 addm vmnet3
+        sudo ifconfig bridge1 addm tap1
+        sudo ifconfig bridge1 up
+        printf "\nBridge1 already exists adding interfaces vmnet3 and tap1\n\n"
 	else
-                sudo ifconfig vmnet3 down
-                sudo ifconfig vmnet3 inet delete
-	        sudo ifconfig bridge1 create
+        sudo ifconfig vmnet3 down
+        sudo ifconfig vmnet3 inet delete
+	    sudo ifconfig bridge1 create
 		sudo ifconfig bridge1 addm vmnet3
-                sudo ifconfig bridge1 addm tap1
-                sudo ifconfig bridge1 up
-		echo ""
-                echo "Bridge1 Created from vmnet3 and tap1"
-                echo ""
+        sudo ifconfig bridge1 addm tap1
+        sudo ifconfig bridge1 up
+		printf "\nBridge1 Created from vmnet3 and tap1\n\n"
 
 fi
 
